@@ -1,0 +1,33 @@
+[package]
+name = "cubby-connect-server"
+version = "0.1.0"
+authors = [
+    "Chris Ohk <utilforever@gmail.com>",
+    "Seungoh Han <so.h4ns@gmail.com>",
+    "Jaeyong Sung <jaeyong0201@gmail.com>",
+    "Seungbin Oh <sboh1214@gmail.com>",
+    "Minchurl Shin <minchurl001@gmail.com>"
+]
+description = "Voxel-based MMORPG server using Rust"
+repository = "https://github.com/CubbyTeam/CubbyConnect"
+readme = "README.md"
+keywords = ["game", "mmorpg", "server"]
+license = "MIT"
+edition = "2018"
+include = [
+    "src/**.*",
+    "Cargo.toml",
+    "README.md",
+    "LICENSE"
+]
+
+[dependencies]
+derive_builder = "0.10.2"
+rand = "0.8.4"
+rustls = "0.19.1"
+prost = "0.8"
+serde = { version = "1.0", features = ["derive"] }
+tokio = { version = "1.10.1", features = ["net"] }
+
+[build-dependencies]
+prost-build = "0.8"

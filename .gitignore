@@ -1,0 +1,38 @@
+# IDE/editor related files
+# IntelliJ based IDE
+.idea/
+**/cmake-build-debug/
+**/cmake-build-release/
+
+# VSCode
+.vscode/
+*.code-workspace
+
+# Vim
+**/*.swp
+
+# Visual Studio
+.vs/
+
+# misc
+.DS_Store
+*.pem
+
+# Rust
+**/target/
+**/Cargo.lock
+**/*.rs.bk
+
+# Testing
+**/coverage/
+
+# Production
+**/build/
+
+# Local env files
+**/.env.local
+**/.env.development.local
+**/.env.test.local
+**/.env.production.local
+
+#
