@@ -3,7 +3,7 @@
 //! # Examples
 //!
 //! ```
-//! use cubby_server_middleware::config::{Config, AuthServer};
+//! use cubby_connect_server::config::{Config, AuthServer};
 //!
 //! // using only default values
 //! let config = Config::builder().build().unwrap();

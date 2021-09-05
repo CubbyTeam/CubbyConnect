@@ -1,0 +1,28 @@
+name: Server Fmt
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  server_fmt:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setting up rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          override: true
+          components: rustfmt
+
+      - name: Checking if code is formatted
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all --manifest-path server/Cargo.toml -- --check
