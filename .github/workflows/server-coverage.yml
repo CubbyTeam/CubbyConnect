@@ -36,6 +36,4 @@ jobs:
                   --excl-line '#\[|=> panic!|unreachable!|Io\(std::io::Error\)' \
                   --excl-br-line '#\[|=> panic!|unreachable!|assert_..!|assert_approx_eq!' -o ./coverage/lcov.info
       - name: Upload to Codecov
-        uses: codecov/codecov-action@v1.0.2
-        with:
-          file: ${{ steps.coverage.outputs.report }}
+        uses: codecov/codecov-action@v1
