@@ -1,0 +1,10 @@
+status = [
+    "Server Audit"
+    "Server Build"
+    "Server Clippy"
+    "Server Coverage"
+    "Server Fmt"
+    "Server Test"
+]
+delete_merged_branches = true
+timeout_sec = 1200 # 20 min
