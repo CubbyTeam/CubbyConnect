@@ -1,10 +1,28 @@
 status = [
-    "Server Audit"
-    "Server Build"
-    "Server Clippy"
-    "Server Coverage"
-    "Server Fmt"
-    "Server Test"
+    "server_build (ubuntu-stable)",
+    "server_build (ubuntu-beta)",
+    "server_build (ubuntu-nightly)",
+    "server_build (macos-stable)",
+    "server_build (macos-beta)",
+    "server_build (macos-nightly)",
+    "server_build (windows-stable)",
+    "server_build (windows-beta)",
+    "server_build (windows-nightly)",
+    "server_test (ubuntu-stable)",
+    "server_test (ubuntu-beta)",
+    "server_test (ubuntu-nightly)",
+    "server_test (macos-stable)",
+    "server_test (macos-beta)",
+    "server_test (macos-nightly)",
+    "server_test (windows-stable)",
+    "server_test (windows-beta)",
+    "server_test (windows-nightly)",
+    "server_fmt",
+    "server_clippy (ubuntu-stable)",
+    "server_clippy (ubuntu-beta)",
+    "server_clippy (ubuntu-nightly)",
+    "server_coverage",
+    "server_security_audit",
 ]
 delete_merged_branches = true
 timeout_sec = 1200 # 20 min
