@@ -13,8 +13,7 @@ CubbyConnect is a voxel-based MMORPG server & client connecting each other.
 
 ## Features
 
-- Fast UDP connection
-- Secure TCP connection using TLS
+- Fast & Secure QUIC connection
 - Transfers data using protobuf
 - Pinging for heartbeat
 - Reconnection when internet is temporary disabled (in client)
