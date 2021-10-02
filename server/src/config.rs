@@ -23,9 +23,15 @@ use std::path::PathBuf;
 
 /// configuration for auth server connection
 #[cfg_attr(not(feature = "serial"), derive(Builder, Clone, Debug, Eq, PartialEq))]
-#[cfg_attr(feature = "serial", derive(Builder, Clone, Debug, Eq, PartialEq, Serialize, Deserialize))]
+#[cfg_attr(
+    feature = "serial",
+    derive(Builder, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)
+)]
 #[cfg_attr(not(feature = "serial"), builder(derive(Debug, Eq, PartialEq)))]
-#[cfg_attr(feature = "serial", builder(derive(Debug, Eq, PartialEq, Serialize, Deserialize)))]
+#[cfg_attr(
+    feature = "serial",
+    builder(derive(Debug, Eq, PartialEq, Serialize, Deserialize))
+)]
 pub struct AuthServer {
     /// host of auth server to connect to
     #[builder(default = "String::from(\"127.0.0.1\")", setter(into))]
@@ -55,9 +61,15 @@ impl AuthServer {
 
 /// configuration for connection
 #[cfg_attr(not(feature = "serial"), derive(Builder, Clone, Debug, Eq, PartialEq))]
-#[cfg_attr(feature = "serial", derive(Builder, Clone, Debug, Eq, PartialEq, Serialize, Deserialize))]
+#[cfg_attr(
+    feature = "serial",
+    derive(Builder, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)
+)]
 #[cfg_attr(not(feature = "serial"), builder(derive(Debug, Eq, PartialEq)))]
-#[cfg_attr(feature = "serial", builder(derive(Debug, Eq, PartialEq, Serialize, Deserialize)))]
+#[cfg_attr(
+    feature = "serial",
+    builder(derive(Debug, Eq, PartialEq, Serialize, Deserialize))
+)]
 pub struct Config {
     /// host to run this server
     #[builder(default = "(0, 0, 0, 0)")]
