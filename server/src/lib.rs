@@ -19,7 +19,7 @@
 extern crate derive_builder;
 
 pub mod config;
-pub mod layer;
+pub mod pipe;
 pub mod server;
 
 mod protobuf {

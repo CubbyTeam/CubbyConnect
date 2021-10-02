@@ -23,9 +23,10 @@ include = [
 
 [dependencies]
 derive_builder = "0.10.2"
+futures = "0.3.17"
 prost = "0.8"
 serde = { version = "1.0", features = ["derive"], optional = true }
-tokio = { version = "1.10.1", features = ["net"] }
+tokio = { version = "1.10.1", features = ["full"] }
 
 [features]
 default = []
