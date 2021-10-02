@@ -1,5 +1,8 @@
 //! This is a pipe that can manipulate data through the pipe.
 //!
+//! `PipeFactory` helps you to build pipe with previous pipe.
+//! You can only use `Pipe` for start of the pipe.
+//!
 //! # Examples
 //!
 //! ```
@@ -33,7 +36,7 @@
 //!     type InitError = ();
 //!     type Future = Ready<Result<Self::Pipe, Self::InitError>>;
 //!
-//!     fn new_layer(&self, prev: P) -> Self::Future {
+//!     fn new_pipe(&self, prev: P) -> Self::Future {
 //!         ok(Echo {
 //!             prev,
 //!             _marker: PhantomData::default()
@@ -52,6 +55,8 @@
 //!     fn call(&self, msg: T) -> Self::Future {
 //!         let prev_call = self.prev.call(msg);
 //!
+//!         // this would act as same future of previous pipe,
+//!         // but type of `Ok` is `()`
 //!         Box::pin(async move {
 //!             prev_call.await?;
 //!             Ok(())
@@ -69,6 +74,8 @@
 //!     type Error = ();
 //!     type Future = Ready<Result<(), Self::Error>>;
 //!
+//!     // just calls `print!`
+//!     // then just be ready
 //!     fn call(&self, msg: S) -> Self::Future {
 //!         print!("{}", msg);
 //!         ok(())
@@ -79,6 +86,7 @@
 //! async fn main() -> Result<(), ()>{
 //!     let p = Print;
 //!     let ef = EchoFactory;
+//!     // `e` would be the pipe: `Echo` > `Print`
 //!     let e = ef.new_layer(p).await?;
 //!     // this would print "Hello, World!" to stdout
 //!     e.call("Hello, World!").await?;
@@ -95,17 +103,31 @@ pub trait PipeFactory<M, P>
 where
     P: Pipe<Self::Next>,
 {
+    /// data type that would send to previous pipe
     type Next;
+
+    /// error type that would emit when processing pipe
     type Error;
+
+    /// pipe type to build
     type Pipe: Pipe<M, Error = Self::Error>;
+
+    /// initial error that would emit when building pipe
     type InitError;
+
+    /// future when building pipe
     type Future: Future<Output = Result<Self::Pipe, Self::InitError>>;
 
-    fn new_layer(&self, prev: P) -> Self::Future;
+    /// function to build a pipe
+    fn new_pipe(&self, prev: P) -> Self::Future;
 }
 
+/// This is a pipe to send data easily using future
 pub trait Pipe<M> {
+    /// error when processing
     type Error;
+
+    /// future when building pipe
     type Future: Future<Output = Result<(), Self::Error>>;
 
     fn call(&self, msg: M) -> Self::Future;
