@@ -1,4 +1,3 @@
 pub struct Server;
 
-impl Server {
-}
+impl Server {}
