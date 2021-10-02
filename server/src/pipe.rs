@@ -87,7 +87,7 @@
 //!     let p = Print;
 //!     let ef = EchoFactory;
 //!     // `e` would be the pipe: `Echo` > `Print`
-//!     let e = ef.new_layer(p).await?;
+//!     let e = ef.new_pipe(p).await?;
 //!     // this would print "Hello, World!" to stdout
 //!     e.call("Hello, World!").await?;
 //!     Ok(())
