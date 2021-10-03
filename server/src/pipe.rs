@@ -77,21 +77,23 @@
 //!     // just calls `print!`
 //!     // then just be ready
 //!     fn call(&self, msg: S) -> Self::Future {
+//!         // This should equal to "Hello, World!" in this example
+//!         assert_eq!(msg.to_string(), "Hello, World!");
 //!         print!("{}", msg);
 //!         ok(())
 //!     }
 //! }
 //!
-//! #[tokio::main]
-//! async fn main() -> Result<(), ()>{
-//!     let p = Print;
-//!     let ef = EchoFactory;
-//!     // `e` would be the pipe: `Echo` > `Print`
-//!     let e = ef.new_pipe(p).await?;
-//!     // this would print "Hello, World!" to stdout
-//!     e.call("Hello, World!").await?;
-//!     Ok(())
-//! }
+//! # #[tokio::main]
+//! # async fn main() -> Result<(), ()>{
+//! let p = Print;
+//! let ef = EchoFactory;
+//! // `e` would be the pipe: `Echo` > `Print`
+//! let e = ef.new_pipe(p).await?;
+//! // this would print "Hello, World!" to stdout
+//! e.call("Hello, World!").await?;
+//! # Ok(())
+//! # }
 //! ```
 //!
 
