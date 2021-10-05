@@ -5,8 +5,7 @@
 //!
 //! # Features
 //!
-//! - fast UDP connection
-//! - secure TCP connection using TLS
+//! - fast & secure QUIC connection
 //! - transfers data using protobuf
 //! - pinging for heartbeat
 //! - reconnection when internet is temporary disabled (in client)
@@ -20,6 +19,8 @@
 extern crate derive_builder;
 
 pub mod config;
+pub mod pipe;
+pub mod server;
 
 mod protobuf {
     include!(concat!(env!("OUT_DIR"), "/sample.rs"));

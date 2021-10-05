@@ -17,12 +17,21 @@
 //! ```
 //!
 
+#[cfg(feature = "serial")]
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 /// configuration for auth server connection
-#[derive(Builder, Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[builder(derive(Debug, Deserialize, Eq, PartialEq, Serialize))]
+#[cfg_attr(not(feature = "serial"), derive(Builder, Clone, Debug, Eq, PartialEq))]
+#[cfg_attr(
+    feature = "serial",
+    derive(Builder, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)
+)]
+#[cfg_attr(not(feature = "serial"), builder(derive(Debug, Eq, PartialEq)))]
+#[cfg_attr(
+    feature = "serial",
+    builder(derive(Debug, Eq, PartialEq, Serialize, Deserialize))
+)]
 pub struct AuthServer {
     /// host of auth server to connect to
     #[builder(default = "String::from(\"127.0.0.1\")", setter(into))]
@@ -51,20 +60,24 @@ impl AuthServer {
 }
 
 /// configuration for connection
-#[derive(Builder, Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[builder(derive(Debug, Deserialize, Eq, PartialEq, Serialize))]
+#[cfg_attr(not(feature = "serial"), derive(Builder, Clone, Debug, Eq, PartialEq))]
+#[cfg_attr(
+    feature = "serial",
+    derive(Builder, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)
+)]
+#[cfg_attr(not(feature = "serial"), builder(derive(Debug, Eq, PartialEq)))]
+#[cfg_attr(
+    feature = "serial",
+    builder(derive(Debug, Eq, PartialEq, Serialize, Deserialize))
+)]
 pub struct Config {
     /// host to run this server
     #[builder(default = "(0, 0, 0, 0)")]
     pub host: (u8, u8, u8, u8),
 
-    /// port to bind tcp connection
+    /// port to bind quic connection
     #[builder(default = "20202")]
-    pub tcp_port: u16,
-
-    /// port to bind udp connection
-    #[builder(default = "20302")]
-    pub udp_port: u16,
+    pub quic_port: u16,
 
     /// directory of protobuf files for connection
     #[builder(default = "PathBuf::from(\"./protobuf\")", setter(into))]

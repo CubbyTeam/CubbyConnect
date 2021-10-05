@@ -35,8 +35,14 @@ jobs:
           override: true
           components: clippy
 
-      - name: Checking if it builds without errors (default feature)
+      - name: clippy (default feature)
         uses: actions-rs/cargo@v1
         with:
           command: clippy
           args: --all-targets --manifest-path server/Cargo.toml -- -D warnings
+
+      - name: clippy (serial feature)
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --all-targets --features serial --manifest-path server/Cargo.toml -- -D warnings

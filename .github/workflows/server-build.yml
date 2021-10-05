@@ -35,7 +35,14 @@ jobs:
           toolchain: ${{ matrix.rust }}
           override: true
 
-      - uses: actions-rs/cargo@v1
+      - name: build (default feature)
+        uses: actions-rs/cargo@v1
         with:
           command: build
           args: --all-targets --manifest-path server/Cargo.toml
+
+      - name: build (serial feature)
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --all-targets --features serial --manifest-path server/Cargo.toml
