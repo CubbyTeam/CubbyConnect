@@ -13,7 +13,6 @@
 //! - connection to credential server for authentication
 //! - version matching for compatability
 //! - beautiful logging support
-//!
 
 #[macro_use]
 extern crate derive_builder;
