@@ -6,12 +6,12 @@
 //! # Examples
 //!
 //! ```
+//! use cubby_connect_server::pipe::{Pipe, PipeFactory};
+//! use futures::future::{ok, LocalBoxFuture, Ready};
 //! use std::fmt::Display;
 //! use std::future::Future;
 //! use std::marker::PhantomData;
 //! use std::task::{Context, Poll};
-//! use futures::future::{ok, Ready, LocalBoxFuture};
-//! use cubby_connect_server::pipe::{Pipe, PipeFactory};
 //!
 //! // Factory of Echo.
 //! pub struct EchoFactory;
@@ -19,7 +19,7 @@
 //! // Pipe that sends the message to next as is
 //! pub struct Echo<T, P>
 //! where
-//!     P: Pipe<T>
+//!     P: Pipe<T>,
 //! {
 //!     prev: P,
 //!     _marker: PhantomData<T>,
@@ -39,7 +39,7 @@
 //!     fn new_pipe(&self, prev: P) -> Self::Future {
 //!         ok(Echo {
 //!             prev,
-//!             _marker: PhantomData::default()
+//!             _marker: PhantomData::default(),
 //!         })
 //!     }
 //! }
@@ -69,7 +69,7 @@
 //!
 //! impl<S> Pipe<S> for Print
 //! where
-//!     S: Display
+//!     S: Display,
 //! {
 //!     type Error = ();
 //!     type Future = Ready<Result<(), Self::Error>>;
@@ -99,8 +99,8 @@
 //! This is same as above:
 //!
 //! ```
-//! use std::fmt::Display;
 //! use cubby_connect_server::pipe::{fn_pipe, fn_pipe_factory, Pipe, PipeFactory};
+//! use std::fmt::Display;
 //!
 //! async fn echo<T>(t: T) -> Result<T, ()> {
 //!     Ok(t)
@@ -123,7 +123,6 @@
 //! # Ok(())
 //! # }
 //! ```
-//!
 
 use futures::future::{ok, LocalBoxFuture, Ready};
 use std::future::Future;
