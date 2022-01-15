@@ -96,6 +96,34 @@
 //! # }
 //! ```
 //!
+//! This is same as above:
+//!
+//! ```
+//! use std::fmt::Display;
+//! use cubby_connect_server::pipe::{fn_pipe, fn_pipe_factory, Pipe, PipeFactory};
+//!
+//! async fn echo<T>(t: T) -> Result<T, ()> {
+//!     Ok(t)
+//! }
+//!
+//! async fn print<T: Display>(t: T) -> Result<(), ()> {
+//!     assert_eq!(t.to_string(), "Hello, World!");
+//!     print!("{}", t);
+//!     Ok(())
+//! }
+//!
+//! # #[tokio::main]
+//! # async fn main() -> Result<(), ()> {
+//! let p = fn_pipe(print);
+//! let ef = fn_pipe_factory(echo);
+//! // `e` would be the pipe: `Echo` > `Print`
+//! let e = ef.new_pipe(p).await?;
+//! // this would print "Hello, World" to stdout
+//! e.call("Hello, World!").await?;
+//! # Ok(())
+//! # }
+//! ```
+//!
 
 use futures::future::{ok, LocalBoxFuture, Ready};
 use std::future::Future;
@@ -124,7 +152,7 @@ where
     type Future: Future<Output = Result<Self::Pipe, Self::InitError>>;
 
     /// function to build a pipe
-    fn new_pipe(&'static self, prev: P) -> Self::Future;
+    fn new_pipe(&self, prev: P) -> Self::Future;
 }
 
 /// This is a pipe to send data easily using future
@@ -164,7 +192,7 @@ where
     Fut: Future<Output = Result<(), Err>>,
 {
     f: F,
-    _data: PhantomData<fn(M)>,
+    _marker: PhantomData<fn(M)>,
 }
 
 impl<F, M, Fut, Err> FnPipe<F, M, Fut, Err>
@@ -175,7 +203,7 @@ where
     fn new(f: F) -> Self {
         Self {
             f,
-            _data: PhantomData,
+            _marker: PhantomData,
         }
     }
 }
@@ -249,13 +277,16 @@ where
 /// It would be easier to know the data flow.
 ///
 /// The lifetime is same as the closure.
+///
+/// *a little overhead due to lifetime problem*
+/// function should go into `Arc` because it is multi-thread
 pub struct FnPipeFactory<'a, F, M1, M2, Fut, Err>
 where
     F: Fn(M1) -> Fut + 'a,
     Fut: Future<Output = Result<M2, Err>>,
 {
-    f: F,
-    _data: PhantomData<&'a fn(M1) -> M2>,
+    f: Arc<F>,
+    _marker: PhantomData<&'a fn(M1) -> M2>,
 }
 
 impl<'a, F, M1, M2, Fut, Err> FnPipeFactory<'a, F, M1, M2, Fut, Err>
@@ -265,8 +296,8 @@ where
 {
     fn new(f: F) -> Self {
         Self {
-            f,
-            _data: PhantomData,
+            f: Arc::new(f),
+            _marker: PhantomData,
         }
     }
 }
@@ -288,18 +319,20 @@ where
     type InitError = Err;
     type Future = Ready<Result<Self::Pipe, Err>>;
 
-    fn new_pipe(&'a self, prev: P) -> Self::Future {
+    fn new_pipe(&self, prev: P) -> Self::Future {
         // a little overhead due to lifetime problem
         // -> `prev` is captured in closure but it cannot be borrowed into async
         //    block because closure's lifetime cannot be set.
         // this should go into `Arc` because we are running this in multi-thread
         // TODO: think of a better way (maybe unsafe?)
         let prev = Arc::new(prev);
+        let f = self.f.clone();
 
         ok(fn_pipe(Box::new(move |msg| {
             let prev_ = prev.clone();
+            let f_ = f.clone();
             Box::pin(async move {
-                prev_.call((self.f)(msg).await?).await?;
+                prev_.call(f_(msg).await?).await?;
                 Ok(())
             })
         })))
@@ -320,13 +353,10 @@ where
 
 /// public function wrapper of `FnPipeFactory`
 /// use this to change function to `PipeFactory`
-pub fn fn_pipe_factory<'a, F, M1, M2, Fut, Err, P>(f: F) -> FnPipeFactory<'a, F, M1, M2, Fut, Err>
+pub fn fn_pipe_factory<'a, F, M1, M2, Fut, Err>(f: F) -> FnPipeFactory<'a, F, M1, M2, Fut, Err>
 where
     F: Fn(M1) -> Fut + 'a,
     Fut: Future<Output = Result<M2, Err>>,
-    P: Pipe<M2, Error = Err> + 'a,
 {
     FnPipeFactory::new(f)
 }
-
-
