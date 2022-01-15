@@ -97,7 +97,10 @@
 //! ```
 //!
 
+use futures::future::{ok, LocalBoxFuture, Ready};
 use std::future::Future;
+use std::marker::PhantomData;
+use std::sync::Arc;
 
 /// This is a factory for `Pipe`. Since `Pipe` has chain connection,
 /// it have to hold the previous `Pipe`. It would be provided in factory.
@@ -121,7 +124,7 @@ where
     type Future: Future<Output = Result<Self::Pipe, Self::InitError>>;
 
     /// function to build a pipe
-    fn new_pipe(&self, prev: P) -> Self::Future;
+    fn new_pipe(&'static self, prev: P) -> Self::Future;
 }
 
 /// This is a pipe to send data easily using future
@@ -133,4 +136,163 @@ pub trait Pipe<M> {
     type Future: Future<Output = Result<(), Self::Error>>;
 
     fn call(&self, msg: M) -> Self::Future;
+}
+
+pub trait IntoPipe<P, M>
+where
+    P: Pipe<M>,
+{
+    fn into_pipe(self) -> P;
+}
+
+impl<P, M> IntoPipe<P, M> for P
+where
+    P: Pipe<M>,
+{
+    fn into_pipe(self) -> P {
+        self
+    }
+}
+
+pub struct FnPipe<F, M, Fut, Err>
+where
+    F: Fn(M) -> Fut,
+    Fut: Future<Output = Result<(), Err>>,
+{
+    f: F,
+    _data: PhantomData<fn(M)>,
+}
+
+impl<F, M, Fut, Err> FnPipe<F, M, Fut, Err>
+where
+    F: Fn(M) -> Fut,
+    Fut: Future<Output = Result<(), Err>>,
+{
+    fn new(f: F) -> Self {
+        Self {
+            f,
+            _data: PhantomData,
+        }
+    }
+}
+
+impl<F, M, Fut, Err> Clone for FnPipe<F, M, Fut, Err>
+where
+    F: Fn(M) -> Fut + Clone,
+    Fut: Future<Output = Result<(), Err>>,
+{
+    fn clone(&self) -> Self {
+        Self::new(self.f.clone())
+    }
+}
+
+impl<F, M, Fut, Err> Pipe<M> for FnPipe<F, M, Fut, Err>
+where
+    F: Fn(M) -> Fut,
+    Fut: Future<Output = Result<(), Err>>,
+{
+    type Error = Err;
+    type Future = Fut;
+
+    fn call(&self, msg: M) -> Self::Future {
+        (self.f)(msg)
+    }
+}
+
+impl<F, M, Fut, Err> IntoPipe<FnPipe<F, M, Fut, Err>, M> for F
+where
+    F: Fn(M) -> Fut,
+    Fut: Future<Output = Result<(), Err>>,
+{
+    fn into_pipe(self) -> FnPipe<F, M, Fut, Err> {
+        FnPipe::new(self)
+    }
+}
+
+pub fn fn_pipe<F, M, Fut, Err>(f: F) -> FnPipe<F, M, Fut, Err>
+where
+    F: Fn(M) -> Fut,
+    Fut: Future<Output = Result<(), Err>>,
+{
+    f.into_pipe()
+}
+
+pub trait IntoPipeFactory<PF, M, P>
+where
+    PF: PipeFactory<M, P>,
+    P: Pipe<PF::Next>,
+{
+    fn into_pipe_factory(self) -> PF;
+}
+
+impl<PF, M, P> IntoPipeFactory<PF, M, P> for PF
+where
+    PF: PipeFactory<M, P>,
+    P: Pipe<PF::Next>,
+{
+    fn into_pipe_factory(self) -> PF {
+        self
+    }
+}
+
+pub struct FnPipeFactory<'a, F, M1, M2, Fut, Err>
+where
+    F: Fn(M1) -> Fut + 'a,
+    Fut: Future<Output = Result<M2, Err>>,
+{
+    f: F,
+    _data: PhantomData<&'a fn(M1) -> M2>,
+}
+
+impl<'a, F, M1, M2, Fut, Err> FnPipeFactory<'a, F, M1, M2, Fut, Err>
+where
+    F: Fn(M1) -> Fut + 'a,
+    Fut: Future<Output = Result<M2, Err>>,
+{
+    fn new(f: F) -> Self {
+        Self {
+            f,
+            _data: PhantomData,
+        }
+    }
+}
+
+impl<'a, F, M1, M2, Fut, Err, P> PipeFactory<M1, P> for FnPipeFactory<'a, F, M1, M2, Fut, Err>
+where
+    F: Fn(M1) -> Fut,
+    Fut: Future<Output = Result<M2, Err>>,
+    P: Pipe<M2, Error = Err> + 'a,
+{
+    type Next = M2;
+    type Error = Err;
+    type Pipe = FnPipe<
+        Box<dyn Fn(M1) -> LocalBoxFuture<'a, Result<(), Err>> + 'a>,
+        M1,
+        LocalBoxFuture<'a, Result<(), Err>>,
+        Err,
+    >;
+    type InitError = Err;
+    type Future = Ready<Result<Self::Pipe, Err>>;
+
+    fn new_pipe(&'a self, prev: P) -> Self::Future {
+        let prev = Arc::new(prev);
+        ok(fn_pipe(Box::new(move |msg| {
+            let prev_ = prev.clone();
+            Box::pin(async move {
+                prev_.call((self.f)(msg).await?).await?;
+                Ok(())
+            })
+        })))
+    }
+}
+
+impl<'a, F, M1, M2, Fut, Err, P> IntoPipeFactory<FnPipeFactory<'a, F, M1, M2, Fut, Err>, M1, P> for F
+where
+    F: Fn(M1) -> Fut + 'a,
+    Fut: Future<Output = Result<M2, Err>>,
+    P: Pipe<M2, Error = Err> + 'a,
+{
+    fn into_pipe_factory(self) -> FnPipeFactory<'a, F, M1, M2, Fut, Err> {
+        FnPipeFactory::new(self)
+    }
 }
