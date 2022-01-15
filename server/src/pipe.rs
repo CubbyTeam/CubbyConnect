@@ -309,6 +309,7 @@ where
 {
     type Next = M2;
     type Error = Err;
+    #[allow(clippy::type_complexity)]
     type Pipe = FnPipe<
         Box<dyn Fn(M1) -> LocalBoxFuture<'a, Result<(), Err>> + 'a>,
         M1,
