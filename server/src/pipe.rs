@@ -138,6 +138,7 @@ pub trait Pipe<M> {
     fn call(&self, msg: M) -> Self::Future;
 }
 
+/// This is a trait that can make into `Pipe`
 pub trait IntoPipe<P, M>
 where
     P: Pipe<M>,
@@ -149,11 +150,14 @@ impl<P, M> IntoPipe<P, M> for P
 where
     P: Pipe<M>,
 {
+    /// `Pipe` can be turn into `Pipe` itself
     fn into_pipe(self) -> P {
         self
     }
 }
 
+/// `Pipe` for closures/functions for simple definition of use.
+/// The type of function would be as: `async fn<T>(T) -> Result<(), Err>`
 pub struct FnPipe<F, M, Fut, Err>
 where
     F: Fn(M) -> Fut,
@@ -186,6 +190,7 @@ where
     }
 }
 
+/// This would simply call the function
 impl<F, M, Fut, Err> Pipe<M> for FnPipe<F, M, Fut, Err>
 where
     F: Fn(M) -> Fut,
@@ -209,14 +214,17 @@ where
     }
 }
 
+/// public function wrapper of `FnPipe`
+/// use this to change function into `Pipe`
 pub fn fn_pipe<F, M, Fut, Err>(f: F) -> FnPipe<F, M, Fut, Err>
 where
     F: Fn(M) -> Fut,
     Fut: Future<Output = Result<(), Err>>,
 {
-    f.into_pipe()
+    FnPipe::new(f)
 }
 
+/// This trait can make into `PipeFactory`
 pub trait IntoPipeFactory<PF, M, P>
 where
     PF: PipeFactory<M, P>,
@@ -235,6 +243,12 @@ where
     }
 }
 
+/// `PipeFactory` for closures/functions for simple definition of use.
+/// The type of function would be as: `async fn<T, U>(T) -> Result<U, Err>`
+/// This would be connected to other `Pipe` as: `async fn<U>(U) -> Result<(), Err>`
+/// It would be easier to know the data flow.
+///
+/// The lifetime is same as the closure.
 pub struct FnPipeFactory<'a, F, M1, M2, Fut, Err>
 where
     F: Fn(M1) -> Fut + 'a,
@@ -275,7 +289,13 @@ where
     type Future = Ready<Result<Self::Pipe, Err>>;
 
     fn new_pipe(&'a self, prev: P) -> Self::Future {
+        // a little overhead due to lifetime problem
+        // -> `prev` is captured in closure but it cannot be borrowed into async
+        //    block because closure's lifetime cannot be set.
+        // this should go into `Arc` because we are running this in multi-thread
+        // TODO: think of a better way (maybe unsafe?)
         let prev = Arc::new(prev);
+
         ok(fn_pipe(Box::new(move |msg| {
             let prev_ = prev.clone();
             Box::pin(async move {
@@ -286,7 +306,8 @@ where
     }
 }
 
-impl<'a, F, M1, M2, Fut, Err, P> IntoPipeFactory<FnPipeFactory<'a, F, M1, M2, Fut, Err>, M1, P> for F
+impl<'a, F, M1, M2, Fut, Err, P> IntoPipeFactory<FnPipeFactory<'a, F, M1, M2, Fut, Err>, M1, P>
+    for F
 where
     F: Fn(M1) -> Fut + 'a,
     Fut: Future<Output = Result<M2, Err>>,
@@ -296,3 +317,16 @@ where
         FnPipeFactory::new(self)
     }
 }
+
+/// public function wrapper of `FnPipeFactory`
+/// use this to change function to `PipeFactory`
+pub fn fn_pipe_factory<'a, F, M1, M2, Fut, Err, P>(f: F) -> FnPipeFactory<'a, F, M1, M2, Fut, Err>
+where
+    F: Fn(M1) -> Fut + 'a,
+    Fut: Future<Output = Result<M2, Err>>,
+    P: Pipe<M2, Error = Err> + 'a,
+{
+    FnPipeFactory::new(f)
+}
+
+
