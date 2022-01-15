@@ -3,19 +3,18 @@
 //! # Examples
 //!
 //! ```
-//! use cubby_connect_server::config::{Config, AuthServer};
+//! use cubby_connect_server::config::{AuthServer, Config};
 //!
 //! // using only default values
 //! let config = Config::builder().build().unwrap();
 //!
 //! // changing values
 //! let config = Config::builder()
-//!        .auth_config(AuthServer::builder().password("password").build().unwrap())
-//!        .verbose(3)
-//!        .build()
-//!        .unwrap();
+//!     .auth_config(AuthServer::builder().password("password").build().unwrap())
+//!     .verbose(3)
+//!     .build()
+//!     .unwrap();
 //! ```
-//!
 
 #[cfg(feature = "serial")]
 use serde::{Deserialize, Serialize};
