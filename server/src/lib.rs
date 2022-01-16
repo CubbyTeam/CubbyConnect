@@ -19,6 +19,7 @@ extern crate derive_builder;
 
 pub mod config;
 pub mod pipe;
+pub mod fn_pipe;
 
 mod protobuf {
     include!(concat!(env!("OUT_DIR"), "/sample.rs"));
