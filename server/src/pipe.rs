@@ -96,10 +96,7 @@
 //! # }
 //! ```
 
-use futures::future::{ok, LocalBoxFuture, Ready};
 use std::future::Future;
-use std::marker::PhantomData;
-use std::sync::Arc;
 
 /// This is a factory for `Pipe`. Since `Pipe` has chain connection,
 /// it have to hold the previous `Pipe`. It would be provided in factory.
@@ -173,4 +170,15 @@ where
     fn into_pipe_factory(self) -> PF {
         self
     }
+}
+
+/// `PipeFactory` and `Pipe` connect function for simple use.
+pub fn connect<IPF, PF, M, IP, P>(fac: IPF, pipe: IP) -> PF::Future
+where
+    IPF: IntoPipeFactory<PF, M, P>,
+    PF: PipeFactory<M, P>,
+    P: Pipe<PF::Next>,
+    IP: IntoPipe<P, PF::Next>,
+{
+    fac.into_pipe_factory().new_pipe(pipe.into_pipe())
 }
