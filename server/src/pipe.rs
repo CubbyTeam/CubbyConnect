@@ -95,7 +95,6 @@
 //! # Ok(())
 //! # }
 //! ```
-//!
 
 use futures::future::{ok, LocalBoxFuture, Ready};
 use std::future::Future;
