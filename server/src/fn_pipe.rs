@@ -4,7 +4,7 @@
 //!
 //! ```
 //! use cubby_connect_server::fn_pipe::{fn_pipe, fn_pipe_factory};
-//! use cubby_connect_server::pipe::{Pipe, PipeFactory, connect};
+//! use cubby_connect_server::pipe::{connect, Pipe, PipeFactory};
 //! use std::fmt::Display;
 //!
 //! async fn echo<T>(t: T) -> Result<T, ()> {
@@ -34,11 +34,13 @@
 //! # }
 //! ```
 
-use crate::pipe::{IntoPipe, IntoPipeFactory, Pipe, PipeFactory};
-use futures::future::{ok, LocalBoxFuture, Ready};
 use std::future::Future;
 use std::marker::PhantomData;
 use std::sync::Arc;
+
+use futures::future::{ok, LocalBoxFuture, Ready};
+
+use crate::pipe::{IntoPipe, IntoPipeFactory, Pipe, PipeFactory};
 
 /// `Pipe` for closures/functions for simple definition of use.
 /// The type of function would be as: `async fn<T>(T) -> Result<(), Err>`
