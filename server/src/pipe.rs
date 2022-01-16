@@ -187,7 +187,7 @@ where
 ///
 /// # Example
 ///
-/// ```no-run
+/// ```no_run
 /// pipe!(some_pipe_factory1, some_pipe_factory2, ..., some_pipe);
 /// ```
 #[macro_export]
