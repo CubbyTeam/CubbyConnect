@@ -183,6 +183,13 @@ where
     fac.into_pipe_factory().new_pipe(pipe.into_pipe())
 }
 
+/// macro to use pipe more simple
+///
+/// # Example
+///
+/// ```no-run
+/// pipe!(some_pipe_factory1, some_pipe_factory2, ..., some_pipe);
+/// ```
 #[macro_export]
 macro_rules! pipe {
     ($x:expr, $y:expr) => {
