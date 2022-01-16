@@ -182,3 +182,13 @@ where
 {
     fac.into_pipe_factory().new_pipe(pipe.into_pipe())
 }
+
+#[macro_export]
+macro_rules! pipe {
+    ($x:expr, $y:expr) => {
+        connect($x, $y).await?
+    };
+    ($x:expr, $($y:expr),+) => {
+        connect($x, pipe!($( $y ),+)).await?
+    };
+}

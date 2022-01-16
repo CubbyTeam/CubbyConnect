@@ -5,6 +5,7 @@
 //! ```
 //! use cubby_connect_server::fn_pipe::{fn_pipe, fn_pipe_factory};
 //! use cubby_connect_server::pipe::{connect, Pipe, PipeFactory};
+//! use cubby_connect_server::pipe;
 //! use std::fmt::Display;
 //!
 //! async fn echo<T>(t: T) -> Result<T, ()> {
@@ -29,6 +30,11 @@
 //! // or
 //!
 //! let e = connect(fn_pipe_factory(echo), fn_pipe(print)).await?;
+//! e.call("Hello, World!").await?;
+//!
+//! // or
+//!
+//! let e = pipe!(echo, print);
 //! e.call("Hello, World!").await?;
 //! # Ok(())
 //! # }
