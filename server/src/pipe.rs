@@ -199,3 +199,140 @@ macro_rules! pipe {
         connect($x, pipe!($( $y ),+)).await?
     };
 }
+
+#[cfg(test)]
+mod test {
+    use std::fmt::Display;
+    use std::marker::PhantomData;
+
+    use futures::future::{ok, LocalBoxFuture, Ready};
+    use num_traits::PrimInt;
+
+    use super::*;
+
+    struct PlusOneFactory;
+
+    struct PlusOne<M, P>
+    where
+        M: PrimInt,
+        P: Pipe<M>,
+    {
+        prev: P,
+        _marker: PhantomData<M>,
+    }
+
+    impl<M, P> PipeFactory<M, P> for PlusOneFactory
+    where
+        M: PrimInt,
+        P: Pipe<M>,
+        P::Future: 'static,
+    {
+        type Next = M;
+        type Error = P::Error;
+        type Pipe = PlusOne<M, P>;
+        type InitError = ();
+        type Future = Ready<Result<Self::Pipe, ()>>;
+
+        fn new_pipe(&self, prev: P) -> Self::Future {
+            ok(PlusOne {
+                prev,
+                _marker: PhantomData,
+            })
+        }
+    }
+
+    impl<M, P> Pipe<M> for PlusOne<M, P>
+    where
+        M: PrimInt,
+        P: Pipe<M>,
+        P::Future: 'static,
+    {
+        type Error = P::Error;
+        type Future = LocalBoxFuture<'static, Result<(), Self::Error>>;
+
+        fn call(&self, msg: M) -> Self::Future {
+            let prev = self.prev.call(msg.add(M::one()));
+
+            Box::pin(async move {
+                prev.await?;
+                Ok(())
+            })
+        }
+    }
+
+    struct Check {
+        check: String,
+    }
+
+    impl Check {
+        fn new<S: AsRef<str>>(s: S) -> Check {
+            Check {
+                check: s.as_ref().to_string(),
+            }
+        }
+    }
+
+    impl<M: Display> Pipe<M> for Check {
+        type Error = ();
+        type Future = Ready<Result<(), ()>>;
+
+        fn call(&self, msg: M) -> Self::Future {
+            assert_eq!(msg.to_string(), self.check);
+            ok(())
+        }
+    }
+
+    #[tokio::test]
+    async fn plus_one_test() -> Result<(), ()> {
+        let pipe = PlusOneFactory.new_pipe(Check::new("2")).await?;
+        pipe.call(1).await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn plus_multi_times_test() -> Result<(), ()> {
+        let pipe = PlusOneFactory
+            .new_pipe(
+                PlusOneFactory
+                    .new_pipe(PlusOneFactory.new_pipe(Check::new("8")).await?)
+                    .await?,
+            )
+            .await?;
+        pipe.call(5).await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn connect_plus_one_test() -> Result<(), ()> {
+        let pipe = connect(PlusOneFactory, Check::new("1")).await?;
+        pipe.call(0).await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn connect_plus_multi_times_test() -> Result<(), ()> {
+        let pipe = connect(
+            PlusOneFactory,
+            connect(
+                PlusOneFactory,
+                connect(PlusOneFactory, Check::new("7")).await?,
+            )
+            .await?,
+        )
+        .await?;
+        pipe.call(4).await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn pipe_macro_test() -> Result<(), ()> {
+        let pipe = pipe!(
+            PlusOneFactory,
+            PlusOneFactory,
+            PlusOneFactory,
+            Check::new("6")
+        );
+        pipe.call(3).await?;
+        Ok(())
+    }
+}

@@ -34,3 +34,6 @@ serial = ["serde"]
 
 [build-dependencies]
 prost-build = "0.8"
+
+[dev-dependencies]
+num-traits = "0.2.14"
