@@ -193,10 +193,10 @@ where
 #[macro_export]
 macro_rules! pipe {
     ($x:expr, $y:expr) => {
-        connect($x, $y).await?
+        $crate::pipe::connect($x, $y).await?
     };
     ($x:expr, $($y:expr),+) => {
-        connect($x, pipe!($( $y ),+)).await?
+        $crate::pipe::connect($x, pipe!($( $y ),+)).await?
     };
 }
 

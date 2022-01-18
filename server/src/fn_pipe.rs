@@ -196,3 +196,61 @@ where
 {
     FnPipeFactory::new(f)
 }
+
+#[cfg(test)]
+mod test {
+    use num_traits::PrimInt;
+
+    use crate::pipe;
+
+    use super::*;
+
+    #[tokio::test]
+    async fn fn_pipe_test() -> Result<(), ()> {
+        async fn hello<S: AsRef<str>>(name: S) -> Result<(), ()> {
+            let name = name.as_ref();
+            if name == "None" {
+                Err(())
+            } else {
+                println!("Hello, {}", name);
+                Ok(())
+            }
+        }
+
+        fn_pipe(hello).call("World").await?;
+        assert!(fn_pipe(hello).call("None").await.is_err());
+
+        Ok(())
+    }
+
+    async fn plus_one<I: PrimInt>(i: I) -> Result<I, ()> {
+        Ok(i.add(I::one()))
+    }
+
+    macro_rules! make_check {
+        ($check:expr) => {
+            use std::fmt::Display;
+
+            async fn check<S: Display>(s: S) -> Result<(), ()> {
+                assert_eq!(s.to_string(), $check);
+                Ok(())
+            }
+        };
+    }
+
+    #[tokio::test]
+    async fn plus_one_test() -> Result<(), ()> {
+        make_check!("2");
+        let pipe = pipe!(plus_one, check);
+        pipe.call(1).await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn plus_multi_times_test() -> Result<(), ()> {
+        make_check!("5");
+        let pipe = pipe!(plus_one, plus_one, plus_one, check);
+        pipe.call(2).await?;
+        Ok(())
+    }
+}
