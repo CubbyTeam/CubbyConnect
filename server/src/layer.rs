@@ -32,7 +32,7 @@
 //!     H::Future: 'static,
 //! {
 //!     type Next = T;
-//!     type Error = P::Error;
+//!     type Error = H::Error;
 //!     type Handler = Echo<T, H>;
 //!     type InitError = ();
 //!     type Future = Ready<Result<Self::Handler, Self::InitError>>;
