@@ -24,7 +24,7 @@
 //! # async fn main() -> Result<(), ()> {
 //! let p = fn_handler(print);
 //! let ef = fn_layer(echo);
-//! // `e` would be the pipe: `Echo` > `Print`
+//! // `e` would be the handler: `Echo` > `Print`
 //! let e = ef.new_handler(p).await?;
 //! // this would print "Hello, World" to stdout
 //! e.call("Hello, World!").await?;
@@ -61,19 +61,19 @@ use crate::layer::{IntoLayer, Layer};
 ///
 /// *a little overhead due to lifetime problem*
 /// function should go into `Arc` because it is multi-thread
-pub struct FnLayer<'a, F, M1, M2, Fut, Err>
+pub struct FnLayer<'a, F, T1, T2, Fut, Err>
 where
-    F: Fn(M1) -> Fut + 'a,
-    Fut: Future<Output = Result<M2, Err>>,
+    F: Fn(T1) -> Fut + 'a,
+    Fut: Future<Output = Result<T2, Err>>,
 {
     f: Arc<F>,
-    _marker: PhantomData<&'a fn(M1) -> M2>,
+    _marker: PhantomData<&'a fn(T1) -> T2>,
 }
 
-impl<'a, F, M1, M2, Fut, Err> FnLayer<'a, F, M1, M2, Fut, Err>
+impl<'a, F, T1, T2, Fut, Err> FnLayer<'a, F, T1, T2, Fut, Err>
 where
-    F: Fn(M1) -> Fut + 'a,
-    Fut: Future<Output = Result<M2, Err>>,
+    F: Fn(T1) -> Fut + 'a,
+    Fut: Future<Output = Result<T2, Err>>,
 {
     fn new(f: F) -> Self {
         Self {
@@ -83,25 +83,25 @@ where
     }
 }
 
-impl<'a, F, M1, M2, Fut, Err, P> Layer<M1, P> for FnLayer<'a, F, M1, M2, Fut, Err>
+impl<'a, F, T1, T2, Fut, Err, H> Layer<T1, H> for FnLayer<'a, F, T1, T2, Fut, Err>
 where
-    F: Fn(M1) -> Fut,
-    Fut: Future<Output = Result<M2, Err>>,
-    P: Handler<M2, Error = Err> + 'a,
+    F: Fn(T1) -> Fut,
+    Fut: Future<Output = Result<T2, Err>>,
+    H: Handler<T2, Error = Err> + 'a,
 {
-    type Next = M2;
+    type Next = T2;
     type Error = Err;
     #[allow(clippy::type_complexity)]
     type Handler = FnHandler<
-        Box<dyn Fn(M1) -> LocalBoxFuture<'a, Result<(), Err>> + 'a>,
-        M1,
+        Box<dyn Fn(T1) -> LocalBoxFuture<'a, Result<(), Err>> + 'a>,
+        T1,
         LocalBoxFuture<'a, Result<(), Err>>,
         Err,
     >;
     type InitError = Err;
     type Future = Ready<Result<Self::Handler, Err>>;
 
-    fn new_handler(&self, prev: P) -> Self::Future {
+    fn new_handler(&self, prev: H) -> Self::Future {
         // a little overhead due to lifetime problem
         // -> `prev` is captured in closure but it cannot be borrowed into async
         //    block because closure's lifetime cannot be set.
@@ -121,23 +121,23 @@ where
     }
 }
 
-impl<'a, F, M1, M2, Fut, Err, P> IntoLayer<FnLayer<'a, F, M1, M2, Fut, Err>, M1, P> for F
+impl<'a, F, T1, T2, Fut, Err, H> IntoLayer<FnLayer<'a, F, T1, T2, Fut, Err>, T1, H> for F
 where
-    F: Fn(M1) -> Fut + 'a,
-    Fut: Future<Output = Result<M2, Err>>,
-    P: Handler<M2, Error = Err> + 'a,
+    F: Fn(T1) -> Fut + 'a,
+    Fut: Future<Output = Result<T2, Err>>,
+    H: Handler<T2, Error = Err> + 'a,
 {
-    fn into_layer(self) -> FnLayer<'a, F, M1, M2, Fut, Err> {
+    fn into_layer(self) -> FnLayer<'a, F, T1, T2, Fut, Err> {
         FnLayer::new(self)
     }
 }
 
 /// public function wrapper of `FnPipeFactory`
 /// use this to change function to `PipeFactory`
-pub fn fn_layer<'a, F, M1, M2, Fut, Err>(f: F) -> FnLayer<'a, F, M1, M2, Fut, Err>
+pub fn fn_layer<'a, F, T1, T2, Fut, Err>(f: F) -> FnLayer<'a, F, T1, T2, Fut, Err>
 where
-    F: Fn(M1) -> Fut + 'a,
-    Fut: Future<Output = Result<M2, Err>>,
+    F: Fn(T1) -> Fut + 'a,
+    Fut: Future<Output = Result<T2, Err>>,
 {
     FnLayer::new(f)
 }
@@ -168,16 +168,16 @@ mod test {
     #[tokio::test]
     async fn plus_one_test() -> Result<(), ()> {
         make_check!("2");
-        let pipe = apply!(plus_one, check);
-        pipe.call(1).await?;
+        let handler = apply!(plus_one, check);
+        handler.call(1).await?;
         Ok(())
     }
 
     #[tokio::test]
     async fn plus_multi_times_test() -> Result<(), ()> {
         make_check!("5");
-        let pipe = apply!(plus_one, plus_one, plus_one, check);
-        pipe.call(2).await?;
+        let handler = apply!(plus_one, plus_one, plus_one, check);
+        handler.call(2).await?;
         Ok(())
     }
 

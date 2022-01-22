@@ -30,31 +30,31 @@
 
 use std::future::Future;
 
-/// This is a pipe to send data easily using future
-pub trait Handler<M> {
+/// This is a handler to send data easily using future
+pub trait Handler<T> {
     /// error when processing
     type Error;
 
-    /// future when building pipe
+    /// future when building handler
     type Future: Future<Output = Result<(), Self::Error>>;
 
-    fn call(&self, msg: M) -> Self::Future;
+    fn call(&self, msg: T) -> Self::Future;
 }
 
-/// This is a trait that can make into `Pipe`
-pub trait IntoHandler<P, M>
+/// This is a trait that can make into `Handler`
+pub trait IntoHandler<H, T>
 where
-    P: Handler<M>,
+    H: Handler<T>,
 {
-    fn into_handler(self) -> P;
+    fn into_handler(self) -> H;
 }
 
-impl<P, M> IntoHandler<P, M> for P
+impl<H, T> IntoHandler<H, T> for H
 where
-    P: Handler<M>,
+    H: Handler<T>,
 {
-    /// `Pipe` can be turn into `Pipe` itself
-    fn into_handler(self) -> P {
+    /// `Handler` can be turn into `Handler` itself
+    fn into_handler(self) -> H {
         self
     }
 }

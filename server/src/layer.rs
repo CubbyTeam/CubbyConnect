@@ -1,7 +1,7 @@
-//! This is a handler that can manipulate data through the pipe.
+//! This is a handler that can manipulate data through the handler.
 //!
-//! `Layer` helps you to build pipe with previous pipe.
-//! You can only use `Handler` for start of the pipe.
+//! `Layer` helps you to build handler with previous handler.
+//! You can only use `Handler` for start of the handler.
 //!
 //! # Examples
 //!
@@ -18,26 +18,26 @@
 //! pub struct EchoFactory;
 //!
 //! // Pipe that sends the message to next as is
-//! pub struct Echo<T, P>
+//! pub struct Echo<T, H>
 //! where
-//!     P: Handler<T>,
+//!     H: Handler<T>,
 //! {
-//!     prev: P,
+//!     prev: H,
 //!     _marker: PhantomData<T>,
 //! }
 //!
-//! impl<T, P> Layer<T, P> for EchoFactory
+//! impl<T, H> Layer<T, H> for EchoFactory
 //! where
-//!     P: Handler<T>,
-//!     P::Future: 'static,
+//!     H: Handler<T>,
+//!     H::Future: 'static,
 //! {
 //!     type Next = T;
 //!     type Error = P::Error;
-//!     type Handler = Echo<T, P>;
+//!     type Handler = Echo<T, H>;
 //!     type InitError = ();
 //!     type Future = Ready<Result<Self::Handler, Self::InitError>>;
 //!
-//!     fn new_handler(&self, prev: P) -> Self::Future {
+//!     fn new_handler(&self, prev: H) -> Self::Future {
 //!         ok(Echo {
 //!             prev,
 //!             _marker: PhantomData::default(),
@@ -45,18 +45,18 @@
 //!     }
 //! }
 //!
-//! impl<T, P> Handler<T> for Echo<T, P>
+//! impl<T, H> Handler<T> for Echo<T, H>
 //! where
-//!     P: Handler<T>,
-//!     P::Future: 'static,
+//!     H: Handler<T>,
+//!     H::Future: 'static,
 //! {
-//!     type Error = P::Error;
+//!     type Error = H::Error;
 //!     type Future = LocalBoxFuture<'static, Result<(), Self::Error>>;
 //!
 //!     fn call(&self, msg: T) -> Self::Future {
 //!         let prev_call = self.prev.call(msg);
 //!
-//!         // this would act as same future of previous pipe,
+//!         // this would act as same future of previous handler,
 //!         // but type of `Ok` is `()`
 //!         Box::pin(async move {
 //!             prev_call.await?;
@@ -89,7 +89,7 @@
 //! # async fn main() -> Result<(), ()>{
 //! let p = Print;
 //! let ef = EchoFactory;
-//! // `e` would be the pipe: `Echo` > `Print`
+//! // `e` would be the handler: `Echo` > `Print`
 //! let e = ef.new_handler(p).await?;
 //! // this would print "Hello, World!" to stdout
 //! e.call("Hello, World!").await?;
@@ -101,32 +101,32 @@ use std::future::Future;
 
 use crate::handler::{Handler, IntoHandler};
 
-/// This is a factory for `Pipe`. Since `Pipe` has chain connection,
+/// This is a factory for `Handler`. Since `Handler` has chain connection,
 /// it have to hold the previous `Pipe`. It would be provided in factory.
 pub trait Layer<T, H>
 where
     H: Handler<Self::Next>,
 {
-    /// data type that would send to previous pipe
+    /// data type that would send to previous handler
     type Next;
 
-    /// error type that would emit when processing pipe
+    /// error type that would emit when processing handler
     type Error;
 
-    /// pipe type to build
+    /// handler type to build
     type Handler: Handler<T, Error = Self::Error>;
 
-    /// initial error that would emit when building pipe
+    /// initial error that would emit when building handler
     type InitError;
 
-    /// future when building pipe
+    /// future when building handler
     type Future: Future<Output = Result<Self::Handler, Self::InitError>>;
 
-    /// function to build a pipe
+    /// function to build a handler
     fn new_handler(&self, prev: H) -> Self::Future;
 }
 
-/// This trait can make into `PipeFactory`
+/// This trait can make into `Layer`
 pub trait IntoLayer<L, T, H>
 where
     L: Layer<T, H>,
@@ -140,13 +140,13 @@ where
     L: Layer<T, H>,
     H: Handler<L::Next>,
 {
-    /// `PipeFactory` can be turn into `PipeFactory` itself
+    /// `Layer` can be turn into `Layer` itself
     fn into_layer(self) -> L {
         self
     }
 }
 
-/// `PipeFactory` and `Pipe` connect function for simple use.
+/// `Layer` and `Handler` connect function for simple use.
 pub fn connect<IL, L, T, IH, H>(layer: IL, handler: IH) -> L::Future
 where
     IL: IntoLayer<L, T, H>,
@@ -162,7 +162,7 @@ where
 /// # Example
 ///
 /// ```ignore
-/// apply!(some_pipe_factory1, some_pipe_factory2, ... some_pipe);
+/// apply!(some_layer1, some_layer2, ... some_handler);
 /// ```
 #[macro_export]
 macro_rules! apply {
@@ -186,28 +186,28 @@ mod test {
 
     struct PlusOneFactory;
 
-    struct PlusOne<M, P>
+    struct PlusOne<T, H>
     where
-        M: PrimInt,
-        P: Handler<M>,
+        T: PrimInt,
+        H: Handler<T>,
     {
-        prev: P,
-        _marker: PhantomData<M>,
+        prev: H,
+        _marker: PhantomData<T>,
     }
 
-    impl<M, P> Layer<M, P> for PlusOneFactory
+    impl<T, H> Layer<T, H> for PlusOneFactory
     where
-        M: PrimInt,
-        P: Handler<M>,
-        P::Future: 'static,
+        T: PrimInt,
+        H: Handler<T>,
+        H::Future: 'static,
     {
-        type Next = M;
-        type Error = P::Error;
-        type Handler = PlusOne<M, P>;
+        type Next = T;
+        type Error = H::Error;
+        type Handler = PlusOne<T, H>;
         type InitError = ();
         type Future = Ready<Result<Self::Handler, ()>>;
 
-        fn new_handler(&self, prev: P) -> Self::Future {
+        fn new_handler(&self, prev: H) -> Self::Future {
             ok(PlusOne {
                 prev,
                 _marker: PhantomData,
@@ -215,17 +215,17 @@ mod test {
         }
     }
 
-    impl<M, P> Handler<M> for PlusOne<M, P>
+    impl<T, H> Handler<T> for PlusOne<T, H>
     where
-        M: PrimInt,
-        P: Handler<M>,
-        P::Future: 'static,
+        T: PrimInt,
+        H: Handler<T>,
+        H::Future: 'static,
     {
-        type Error = P::Error;
+        type Error = H::Error;
         type Future = LocalBoxFuture<'static, Result<(), Self::Error>>;
 
-        fn call(&self, msg: M) -> Self::Future {
-            let prev = self.prev.call(msg.add(M::one()));
+        fn call(&self, msg: T) -> Self::Future {
+            let prev = self.prev.call(msg.add(T::one()));
 
             Box::pin(async move {
                 prev.await?;
@@ -246,11 +246,11 @@ mod test {
         }
     }
 
-    impl<M: Display> Handler<M> for Check {
+    impl<T: Display> Handler<T> for Check {
         type Error = ();
         type Future = Ready<Result<(), ()>>;
 
-        fn call(&self, msg: M) -> Self::Future {
+        fn call(&self, msg: T) -> Self::Future {
             assert_eq!(msg.to_string(), self.check);
             ok(())
         }
@@ -258,34 +258,34 @@ mod test {
 
     #[tokio::test]
     async fn plus_one_test() -> Result<(), ()> {
-        let pipe = PlusOneFactory.new_handler(Check::new("2")).await?;
-        pipe.call(1).await?;
+        let handler = PlusOneFactory.new_handler(Check::new("2")).await?;
+        handler.call(1).await?;
         Ok(())
     }
 
     #[tokio::test]
     async fn plus_multi_times_test() -> Result<(), ()> {
-        let pipe = PlusOneFactory
+        let handler = PlusOneFactory
             .new_handler(
                 PlusOneFactory
                     .new_handler(PlusOneFactory.new_handler(Check::new("8")).await?)
                     .await?,
             )
             .await?;
-        pipe.call(5).await?;
+        handler.call(5).await?;
         Ok(())
     }
 
     #[tokio::test]
     async fn connect_plus_one_test() -> Result<(), ()> {
-        let pipe = connect(PlusOneFactory, Check::new("1")).await?;
-        pipe.call(0).await?;
+        let handler = connect(PlusOneFactory, Check::new("1")).await?;
+        handler.call(0).await?;
         Ok(())
     }
 
     #[tokio::test]
     async fn connect_plus_multi_times_test() -> Result<(), ()> {
-        let pipe = connect(
+        let handler = connect(
             PlusOneFactory,
             connect(
                 PlusOneFactory,
@@ -294,19 +294,19 @@ mod test {
             .await?,
         )
         .await?;
-        pipe.call(4).await?;
+        handler.call(4).await?;
         Ok(())
     }
 
     #[tokio::test]
-    async fn pipe_macro_test() -> Result<(), ()> {
-        let pipe = apply!(
+    async fn handler_macro_test() -> Result<(), ()> {
+        let handler = apply!(
             PlusOneFactory,
             PlusOneFactory,
             PlusOneFactory,
             Check::new("6")
         );
-        pipe.call(3).await?;
+        handler.call(3).await?;
         Ok(())
     }
 }
