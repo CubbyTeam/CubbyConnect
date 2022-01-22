@@ -18,8 +18,10 @@
 extern crate derive_builder;
 
 pub mod config;
-pub mod fn_pipe;
-pub mod pipe;
+pub mod fn_handler;
+pub mod fn_layer;
+pub mod handler;
+pub mod layer;
 
 mod protobuf {
     include!(concat!(env!("OUT_DIR"), "/sample.rs"));

@@ -1,11 +1,12 @@
-//! Function adapter for `Pipe` and `PipeFactory`
+//! Function adapter for `Layer`
 //!
 //! # Examples
 //!
 //! ```
-//! use cubby_connect_server::fn_pipe::{fn_pipe, fn_pipe_factory};
-//! use cubby_connect_server::pipe;
-//! use cubby_connect_server::pipe::{connect, Pipe, PipeFactory};
+//! use cubby_connect_server::fn_handler::fn_handler;
+//! use cubby_connect_server::fn_layer::fn_layer;
+//! use cubby_connect_server::handler::{self, Handler};
+//! use cubby_connect_server::layer::{connect, Layer};
 //! use std::fmt::Display;
 //!
 //! async fn echo<T>(t: T) -> Result<T, ()> {
@@ -20,21 +21,21 @@
 //!
 //! # #[tokio::main]
 //! # async fn main() -> Result<(), ()> {
-//! let p = fn_pipe(print);
-//! let ef = fn_pipe_factory(echo);
+//! let p = fn_handler(print);
+//! let ef = fn_layer(echo);
 //! // `e` would be the pipe: `Echo` > `Print`
-//! let e = ef.new_pipe(p).await?;
+//! let e = ef.new_handler(p).await?;
 //! // this would print "Hello, World" to stdout
 //! e.call("Hello, World!").await?;
 //!
 //! // or
 //!
-//! let e = connect(fn_pipe_factory(echo), fn_pipe(print)).await?;
+//! let e = connect(fn_layer(echo), fn_handler(print)).await?;
 //! e.call("Hello, World!").await?;
 //!
 //! // or
 //!
-//! let e = pipe!(echo, print);
+//! let e = apply!(echo, print);
 //! e.call("Hello, World!").await?;
 //! # Ok(())
 //! # }
@@ -46,65 +47,9 @@ use std::sync::Arc;
 
 use futures::future::{ok, LocalBoxFuture, Ready};
 
-use crate::pipe::{IntoPipe, IntoPipeFactory, Pipe, PipeFactory};
-
-/// `Pipe` for closures/functions for simple definition of use.
-/// The type of function would be as: `async fn<T>(T) -> Result<(), Err>`
-pub struct FnPipe<F, M, Fut, Err>
-where
-    F: Fn(M) -> Fut,
-    Fut: Future<Output = Result<(), Err>>,
-{
-    f: F,
-    _marker: PhantomData<fn(M)>,
-}
-
-impl<F, M, Fut, Err> FnPipe<F, M, Fut, Err>
-where
-    F: Fn(M) -> Fut,
-    Fut: Future<Output = Result<(), Err>>,
-{
-    fn new(f: F) -> Self {
-        Self {
-            f,
-            _marker: PhantomData,
-        }
-    }
-}
-
-/// This would simply call the function
-impl<F, M, Fut, Err> Pipe<M> for FnPipe<F, M, Fut, Err>
-where
-    F: Fn(M) -> Fut,
-    Fut: Future<Output = Result<(), Err>>,
-{
-    type Error = Err;
-    type Future = Fut;
-
-    fn call(&self, msg: M) -> Self::Future {
-        (self.f)(msg)
-    }
-}
-
-impl<F, M, Fut, Err> IntoPipe<FnPipe<F, M, Fut, Err>, M> for F
-where
-    F: Fn(M) -> Fut,
-    Fut: Future<Output = Result<(), Err>>,
-{
-    fn into_pipe(self) -> FnPipe<F, M, Fut, Err> {
-        FnPipe::new(self)
-    }
-}
-
-/// public function wrapper of `FnPipe`
-/// use this to change function into `Pipe`
-pub fn fn_pipe<F, M, Fut, Err>(f: F) -> FnPipe<F, M, Fut, Err>
-where
-    F: Fn(M) -> Fut,
-    Fut: Future<Output = Result<(), Err>>,
-{
-    FnPipe::new(f)
-}
+use crate::fn_handler::{fn_handler, FnHandler};
+use crate::handler::Handler;
+use crate::layer::{IntoLayer, Layer};
 
 /// `PipeFactory` for closures/functions for simple definition of use.
 /// The type of function would be as: `async fn<T, U>(T) -> Result<U, Err>`
@@ -115,7 +60,7 @@ where
 ///
 /// *a little overhead due to lifetime problem*
 /// function should go into `Arc` because it is multi-thread
-pub struct FnPipeFactory<'a, F, M1, M2, Fut, Err>
+pub struct FnLayer<'a, F, M1, M2, Fut, Err>
 where
     F: Fn(M1) -> Fut + 'a,
     Fut: Future<Output = Result<M2, Err>>,
@@ -124,7 +69,7 @@ where
     _marker: PhantomData<&'a fn(M1) -> M2>,
 }
 
-impl<'a, F, M1, M2, Fut, Err> FnPipeFactory<'a, F, M1, M2, Fut, Err>
+impl<'a, F, M1, M2, Fut, Err> FnLayer<'a, F, M1, M2, Fut, Err>
 where
     F: Fn(M1) -> Fut + 'a,
     Fut: Future<Output = Result<M2, Err>>,
@@ -137,25 +82,25 @@ where
     }
 }
 
-impl<'a, F, M1, M2, Fut, Err, P> PipeFactory<M1, P> for FnPipeFactory<'a, F, M1, M2, Fut, Err>
+impl<'a, F, M1, M2, Fut, Err, P> Layer<M1, P> for FnLayer<'a, F, M1, M2, Fut, Err>
 where
     F: Fn(M1) -> Fut,
     Fut: Future<Output = Result<M2, Err>>,
-    P: Pipe<M2, Error = Err> + 'a,
+    P: Handler<M2, Error = Err> + 'a,
 {
     type Next = M2;
     type Error = Err;
     #[allow(clippy::type_complexity)]
-    type Pipe = FnPipe<
+    type Handler = FnHandler<
         Box<dyn Fn(M1) -> LocalBoxFuture<'a, Result<(), Err>> + 'a>,
         M1,
         LocalBoxFuture<'a, Result<(), Err>>,
         Err,
     >;
     type InitError = Err;
-    type Future = Ready<Result<Self::Pipe, Err>>;
+    type Future = Ready<Result<Self::Handler, Err>>;
 
-    fn new_pipe(&self, prev: P) -> Self::Future {
+    fn new_handler(&self, prev: P) -> Self::Future {
         // a little overhead due to lifetime problem
         // -> `prev` is captured in closure but it cannot be borrowed into async
         //    block because closure's lifetime cannot be set.
@@ -164,7 +109,7 @@ where
         let prev = Arc::new(prev);
         let f = self.f.clone();
 
-        ok(fn_pipe(Box::new(move |msg| {
+        ok(fn_handler(Box::new(move |msg| {
             let prev_ = prev.clone();
             let f_ = f.clone();
             Box::pin(async move {
@@ -175,53 +120,34 @@ where
     }
 }
 
-impl<'a, F, M1, M2, Fut, Err, P> IntoPipeFactory<FnPipeFactory<'a, F, M1, M2, Fut, Err>, M1, P>
-    for F
+impl<'a, F, M1, M2, Fut, Err, P> IntoLayer<FnLayer<'a, F, M1, M2, Fut, Err>, M1, P> for F
 where
     F: Fn(M1) -> Fut + 'a,
     Fut: Future<Output = Result<M2, Err>>,
-    P: Pipe<M2, Error = Err> + 'a,
+    P: Handler<M2, Error = Err> + 'a,
 {
-    fn into_pipe_factory(self) -> FnPipeFactory<'a, F, M1, M2, Fut, Err> {
-        FnPipeFactory::new(self)
+    fn into_layer(self) -> FnLayer<'a, F, M1, M2, Fut, Err> {
+        FnLayer::new(self)
     }
 }
 
 /// public function wrapper of `FnPipeFactory`
 /// use this to change function to `PipeFactory`
-pub fn fn_pipe_factory<'a, F, M1, M2, Fut, Err>(f: F) -> FnPipeFactory<'a, F, M1, M2, Fut, Err>
+pub fn fn_layer<'a, F, M1, M2, Fut, Err>(f: F) -> FnLayer<'a, F, M1, M2, Fut, Err>
 where
     F: Fn(M1) -> Fut + 'a,
     Fut: Future<Output = Result<M2, Err>>,
 {
-    FnPipeFactory::new(f)
+    FnLayer::new(f)
 }
 
 #[cfg(test)]
 mod test {
     use num_traits::PrimInt;
 
-    use crate::pipe;
+    use crate::apply;
 
     use super::*;
-
-    #[tokio::test]
-    async fn fn_pipe_test() -> Result<(), ()> {
-        async fn hello<S: AsRef<str>>(name: S) -> Result<(), ()> {
-            let name = name.as_ref();
-            if name == "None" {
-                Err(())
-            } else {
-                println!("Hello, {}", name);
-                Ok(())
-            }
-        }
-
-        fn_pipe(hello).call("World").await?;
-        assert!(fn_pipe(hello).call("None").await.is_err());
-
-        Ok(())
-    }
 
     async fn plus_one<I: PrimInt>(i: I) -> Result<I, ()> {
         Ok(i.add(I::one()))
@@ -241,7 +167,7 @@ mod test {
     #[tokio::test]
     async fn plus_one_test() -> Result<(), ()> {
         make_check!("2");
-        let pipe = pipe!(plus_one, check);
+        let pipe = apply!(plus_one, check);
         pipe.call(1).await?;
         Ok(())
     }
@@ -249,8 +175,19 @@ mod test {
     #[tokio::test]
     async fn plus_multi_times_test() -> Result<(), ()> {
         make_check!("5");
-        let pipe = pipe!(plus_one, plus_one, plus_one, check);
+        let pipe = apply!(plus_one, plus_one, plus_one, check);
         pipe.call(2).await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn plus_a_lot_of_times_test() -> Result<(), ()> {
+        make_check!("15");
+        let handler = apply!(
+            plus_one, plus_one, plus_one, plus_one, plus_one, plus_one, plus_one, plus_one,
+            plus_one, plus_one, plus_one, plus_one, plus_one, check
+        );
+        handler.call(2).await?;
         Ok(())
     }
 }

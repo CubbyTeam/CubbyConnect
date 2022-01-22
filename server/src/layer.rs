@@ -1,12 +1,13 @@
-//! This is a pipe that can manipulate data through the pipe.
+//! This is a handler that can manipulate data through the pipe.
 //!
-//! `PipeFactory` helps you to build pipe with previous pipe.
-//! You can only use `Pipe` for start of the pipe.
+//! `Layer` helps you to build pipe with previous pipe.
+//! You can only use `Handler` for start of the pipe.
 //!
 //! # Examples
 //!
 //! ```
-//! use cubby_connect_server::pipe::{Pipe, PipeFactory};
+//! use cubby_connect_server::handler::Handler;
+//! use cubby_connect_server::layer::Layer;
 //! use futures::future::{ok, LocalBoxFuture, Ready};
 //! use std::fmt::Display;
 //! use std::future::Future;
@@ -19,24 +20,24 @@
 //! // Pipe that sends the message to next as is
 //! pub struct Echo<T, P>
 //! where
-//!     P: Pipe<T>,
+//!     P: Handler<T>,
 //! {
 //!     prev: P,
 //!     _marker: PhantomData<T>,
 //! }
 //!
-//! impl<T, P> PipeFactory<T, P> for EchoFactory
+//! impl<T, P> Layer<T, P> for EchoFactory
 //! where
-//!     P: Pipe<T>,
+//!     P: Handler<T>,
 //!     P::Future: 'static,
 //! {
 //!     type Next = T;
 //!     type Error = P::Error;
-//!     type Pipe = Echo<T, P>;
+//!     type Handler = Echo<T, P>;
 //!     type InitError = ();
-//!     type Future = Ready<Result<Self::Pipe, Self::InitError>>;
+//!     type Future = Ready<Result<Self::Handler, Self::InitError>>;
 //!
-//!     fn new_pipe(&self, prev: P) -> Self::Future {
+//!     fn new_handler(&self, prev: P) -> Self::Future {
 //!         ok(Echo {
 //!             prev,
 //!             _marker: PhantomData::default(),
@@ -44,9 +45,9 @@
 //!     }
 //! }
 //!
-//! impl<T, P> Pipe<T> for Echo<T, P>
+//! impl<T, P> Handler<T> for Echo<T, P>
 //! where
-//!     P: Pipe<T>,
+//!     P: Handler<T>,
 //!     P::Future: 'static,
 //! {
 //!     type Error = P::Error;
@@ -67,7 +68,7 @@
 //! // print to stdout that got
 //! pub struct Print;
 //!
-//! impl<S> Pipe<S> for Print
+//! impl<S> Handler<S> for Print
 //! where
 //!     S: Display,
 //! {
@@ -98,11 +99,13 @@
 
 use std::future::Future;
 
+use crate::handler::{Handler, IntoHandler};
+
 /// This is a factory for `Pipe`. Since `Pipe` has chain connection,
 /// it have to hold the previous `Pipe`. It would be provided in factory.
-pub trait PipeFactory<M, P>
+pub trait Layer<T, H>
 where
-    P: Pipe<Self::Next>,
+    H: Handler<Self::Next>,
 {
     /// data type that would send to previous pipe
     type Next;
@@ -111,92 +114,63 @@ where
     type Error;
 
     /// pipe type to build
-    type Pipe: Pipe<M, Error = Self::Error>;
+    type Handler: Handler<T, Error = Self::Error>;
 
     /// initial error that would emit when building pipe
     type InitError;
 
     /// future when building pipe
-    type Future: Future<Output = Result<Self::Pipe, Self::InitError>>;
+    type Future: Future<Output = Result<Self::Handler, Self::InitError>>;
 
     /// function to build a pipe
-    fn new_pipe(&self, prev: P) -> Self::Future;
-}
-
-/// This is a pipe to send data easily using future
-pub trait Pipe<M> {
-    /// error when processing
-    type Error;
-
-    /// future when building pipe
-    type Future: Future<Output = Result<(), Self::Error>>;
-
-    fn call(&self, msg: M) -> Self::Future;
-}
-
-/// This is a trait that can make into `Pipe`
-pub trait IntoPipe<P, M>
-where
-    P: Pipe<M>,
-{
-    fn into_pipe(self) -> P;
-}
-
-impl<P, M> IntoPipe<P, M> for P
-where
-    P: Pipe<M>,
-{
-    /// `Pipe` can be turn into `Pipe` itself
-    fn into_pipe(self) -> P {
-        self
-    }
+    fn new_handler(&self, prev: H) -> Self::Future;
 }
 
 /// This trait can make into `PipeFactory`
-pub trait IntoPipeFactory<PF, M, P>
+pub trait IntoLayer<L, T, H>
 where
-    PF: PipeFactory<M, P>,
-    P: Pipe<PF::Next>,
+    L: Layer<T, H>,
+    H: Handler<L::Next>,
 {
-    fn into_pipe_factory(self) -> PF;
+    fn into_layer(self) -> L;
 }
 
-impl<PF, M, P> IntoPipeFactory<PF, M, P> for PF
+impl<L, T, H> IntoLayer<L, T, H> for L
 where
-    PF: PipeFactory<M, P>,
-    P: Pipe<PF::Next>,
+    L: Layer<T, H>,
+    H: Handler<L::Next>,
 {
     /// `PipeFactory` can be turn into `PipeFactory` itself
-    fn into_pipe_factory(self) -> PF {
+    fn into_layer(self) -> L {
         self
     }
 }
 
 /// `PipeFactory` and `Pipe` connect function for simple use.
-pub fn connect<IPF, PF, M, IP, P>(fac: IPF, pipe: IP) -> PF::Future
+pub fn connect<IL, L, T, IH, H>(layer: IL, handler: IH) -> L::Future
 where
-    IPF: IntoPipeFactory<PF, M, P>,
-    PF: PipeFactory<M, P>,
-    P: Pipe<PF::Next>,
-    IP: IntoPipe<P, PF::Next>,
+    IL: IntoLayer<L, T, H>,
+    L: Layer<T, H>,
+    H: Handler<L::Next>,
+    IH: IntoHandler<H, L::Next>,
 {
-    fac.into_pipe_factory().new_pipe(pipe.into_pipe())
+    layer.into_layer().new_handler(handler.into_handler())
 }
 
-/// macro to use pipe more simple
+/// macro to use handler more simple
 ///
 /// # Example
 ///
 /// ```ignore
-/// pipe!(some_pipe_factory1, some_pipe_factory2, ..., some_pipe);
+/// apply!(some_pipe_factory1, some_pipe_factory2, ... some_pipe);
 /// ```
 #[macro_export]
-macro_rules! pipe {
+macro_rules! apply {
     ($x:expr, $y:expr) => {
-        $crate::pipe::connect($x, $y).await?
+        $crate::layer::connect($x, $y).await?
     };
     ($x:expr, $($y:expr),+) => {
-        $crate::pipe::connect($x, pipe!($( $y ),+)).await?
+        $crate::layer::connect($x, apply!($( $y ),+)).await?
     };
 }
 
@@ -215,25 +189,25 @@ mod test {
     struct PlusOne<M, P>
     where
         M: PrimInt,
-        P: Pipe<M>,
+        P: Handler<M>,
     {
         prev: P,
         _marker: PhantomData<M>,
     }
 
-    impl<M, P> PipeFactory<M, P> for PlusOneFactory
+    impl<M, P> Layer<M, P> for PlusOneFactory
     where
         M: PrimInt,
-        P: Pipe<M>,
+        P: Handler<M>,
         P::Future: 'static,
     {
         type Next = M;
         type Error = P::Error;
-        type Pipe = PlusOne<M, P>;
+        type Handler = PlusOne<M, P>;
         type InitError = ();
-        type Future = Ready<Result<Self::Pipe, ()>>;
+        type Future = Ready<Result<Self::Handler, ()>>;
 
-        fn new_pipe(&self, prev: P) -> Self::Future {
+        fn new_handler(&self, prev: P) -> Self::Future {
             ok(PlusOne {
                 prev,
                 _marker: PhantomData,
@@ -241,10 +215,10 @@ mod test {
         }
     }
 
-    impl<M, P> Pipe<M> for PlusOne<M, P>
+    impl<M, P> Handler<M> for PlusOne<M, P>
     where
         M: PrimInt,
-        P: Pipe<M>,
+        P: Handler<M>,
         P::Future: 'static,
     {
         type Error = P::Error;
@@ -272,7 +246,7 @@ mod test {
         }
     }
 
-    impl<M: Display> Pipe<M> for Check {
+    impl<M: Display> Handler<M> for Check {
         type Error = ();
         type Future = Ready<Result<(), ()>>;
 
@@ -284,7 +258,7 @@ mod test {
 
     #[tokio::test]
     async fn plus_one_test() -> Result<(), ()> {
-        let pipe = PlusOneFactory.new_pipe(Check::new("2")).await?;
+        let pipe = PlusOneFactory.new_handler(Check::new("2")).await?;
         pipe.call(1).await?;
         Ok(())
     }
@@ -292,9 +266,9 @@ mod test {
     #[tokio::test]
     async fn plus_multi_times_test() -> Result<(), ()> {
         let pipe = PlusOneFactory
-            .new_pipe(
+            .new_handler(
                 PlusOneFactory
-                    .new_pipe(PlusOneFactory.new_pipe(Check::new("8")).await?)
+                    .new_handler(PlusOneFactory.new_handler(Check::new("8")).await?)
                     .await?,
             )
             .await?;
@@ -326,7 +300,7 @@ mod test {
 
     #[tokio::test]
     async fn pipe_macro_test() -> Result<(), ()> {
-        let pipe = pipe!(
+        let pipe = apply!(
             PlusOneFactory,
             PlusOneFactory,
             PlusOneFactory,
