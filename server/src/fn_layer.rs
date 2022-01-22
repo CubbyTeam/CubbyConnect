@@ -3,6 +3,7 @@
 //! # Examples
 //!
 //! ```
+//! use cubby_connect_server::apply;
 //! use cubby_connect_server::fn_handler::fn_handler;
 //! use cubby_connect_server::fn_layer::fn_layer;
 //! use cubby_connect_server::handler::{self, Handler};
