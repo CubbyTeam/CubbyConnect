@@ -16,9 +16,10 @@
 //!     .unwrap();
 //! ```
 
+use std::path::PathBuf;
+
 #[cfg(feature = "serial")]
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
 
 /// configuration for auth server connection
 #[cfg_attr(not(feature = "serial"), derive(Builder, Clone, Debug, Eq, PartialEq))]
