@@ -14,7 +14,7 @@
 //!     type Future = Ready<Result<(), ()>>;
 //!
 //!     fn call(&self, msg: S) -> Self::Future {
-//!         println!("Hello {}", msg);
+//!         println!("Hello {msg}");
 //!         ok(())
 //!     }
 //! }

@@ -80,7 +80,7 @@
 //!     fn call(&self, msg: S) -> Self::Future {
 //!         // This should equal to "Hello, World!" in this example
 //!         assert_eq!(msg.to_string(), "Hello, World!");
-//!         print!("{}", msg);
+//!         print!("{msg}");
 //!         ok(())
 //!     }
 //! }

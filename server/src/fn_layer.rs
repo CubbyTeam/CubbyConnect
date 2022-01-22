@@ -16,7 +16,7 @@
 //!
 //! async fn print<T: Display>(t: T) -> Result<(), ()> {
 //!     assert_eq!(t.to_string(), "Hello, World!");
-//!     print!("{}", t);
+//!     print!("{t}");
 //!     Ok(())
 //! }
 //!

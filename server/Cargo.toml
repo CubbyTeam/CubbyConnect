@@ -13,7 +13,7 @@ repository = "https://github.com/CubbyTeam/CubbyConnect"
 readme = "README.md"
 keywords = ["game", "mmorpg", "server"]
 license = "MIT"
-edition = "2018"
+edition = "2021"
 include = [
     "src/**.*",
     "Cargo.toml",

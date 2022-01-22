@@ -8,7 +8,7 @@
 //! use std::fmt::Display;
 //!
 //! async fn hello<S: Display>(s: S) -> Result<(), ()> {
-//!     println!("Hello {}", s);
+//!     println!("Hello {s}");
 //!     Ok(())
 //! }
 //!
@@ -95,7 +95,7 @@ mod test {
             if name == "None" {
                 Err(())
             } else {
-                println!("Hello, {}", name);
+                println!("Hello, {name}");
                 Ok(())
             }
         }
