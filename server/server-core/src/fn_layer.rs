@@ -7,6 +7,7 @@
 //! use cubby_connect_server_core::fn_layer::fn_layer;
 //! use cubby_connect_server_core::handler::{self, Handler};
 //! use cubby_connect_server_core::layer::{connect, Layer};
+//! use cubby_connect_server_core::apply;
 //! use std::fmt::Display;
 //!
 //! async fn echo<T>(t: T) -> Result<T, ()> {
@@ -30,7 +31,12 @@
 //!
 //! // or
 //!
-//! let e = connect(fn_layer(echo), fn_handler(print)).await?;
+//! let e = connect(echo, print).await?;
+//! e.call("Hello, World!").await?;
+//!
+//! // or
+//!  
+//! let e = apply!(echo to print);
 //! e.call("Hello, World!").await?;
 //! # Ok(())
 //! # }

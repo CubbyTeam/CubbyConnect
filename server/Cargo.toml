@@ -18,10 +18,8 @@ include = [
     "src/**.*",
     "Cargo.toml",
     "README.md",
-    "LICENSE"
 ]
 
 [dependencies]
 cubby-connect-server-core = { path = "./server-core" }
-cubby-connect-server-macro = { path = "./server-macro" }
 

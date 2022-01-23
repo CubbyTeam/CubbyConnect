@@ -21,7 +21,7 @@
 //! pub struct Echo<T, H>
 //! where
 //!     H: Handler<T>,
-//!
+//! {
 //!     prev: H,
 //!     _marker: PhantomData<T>,
 //! }

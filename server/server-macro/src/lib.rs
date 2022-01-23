@@ -60,7 +60,13 @@ pub fn apply(input: TokenStream) -> TokenStream {
 
 #[allow(dead_code)]
 mod compile_fail_test {
-    /// ```compile_fail
+    /// apply cannot be empty
+    ///
+    /// error: unexpected end of input, expected expression
+    ///
+    /// ```compile_error
+    /// use cubby_connect_server_macro::apply;
+    ///
     /// apply!()
     /// ```
     fn no_argument() {}

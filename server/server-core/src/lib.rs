@@ -17,6 +17,8 @@
 #[macro_use]
 extern crate derive_builder;
 
+pub use cubby_connect_server_macro::apply;
+
 pub mod config;
 pub mod fn_handler;
 pub mod fn_layer;
