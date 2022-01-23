@@ -147,6 +147,9 @@ where
 }
 
 /// `Layer` and `Handler` connect function for simple use.
+///
+/// use `apply` for better expandability.
+/// `apply` would expand to connect.
 pub fn connect<IL, L, T, IH, H>(layer: IL, handler: IH) -> L::Future
 where
     IL: IntoLayer<L, T, H>,
