@@ -3,11 +3,10 @@
 //! # Examples
 //!
 //! ```
-//! use cubby_connect_server::apply;
-//! use cubby_connect_server::fn_handler::fn_handler;
-//! use cubby_connect_server::fn_layer::fn_layer;
-//! use cubby_connect_server::handler::{self, Handler};
-//! use cubby_connect_server::layer::{connect, Layer};
+//! use cubby_connect_server_core::fn_handler::fn_handler;
+//! use cubby_connect_server_core::fn_layer::fn_layer;
+//! use cubby_connect_server_core::handler::{self, Handler};
+//! use cubby_connect_server_core::layer::{connect, Layer};
 //! use std::fmt::Display;
 //!
 //! async fn echo<T>(t: T) -> Result<T, ()> {
@@ -32,11 +31,6 @@
 //! // or
 //!
 //! let e = connect(fn_layer(echo), fn_handler(print)).await?;
-//! e.call("Hello, World!").await?;
-//!
-//! // or
-//!
-//! let e = apply!(echo, print);
 //! e.call("Hello, World!").await?;
 //! # Ok(())
 //! # }
@@ -146,7 +140,7 @@ where
 mod test {
     use num_traits::PrimInt;
 
-    use crate::apply;
+    use crate::layer::connect;
 
     use super::*;
 
@@ -168,7 +162,7 @@ mod test {
     #[tokio::test]
     async fn plus_one_test() -> Result<(), ()> {
         make_check!("2");
-        let handler = apply!(plus_one, check);
+        let handler = connect(plus_one, check).await?;
         handler.call(1).await?;
         Ok(())
     }
@@ -176,18 +170,11 @@ mod test {
     #[tokio::test]
     async fn plus_multi_times_test() -> Result<(), ()> {
         make_check!("5");
-        let handler = apply!(plus_one, plus_one, plus_one, check);
-        handler.call(2).await?;
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn plus_a_lot_of_times_test() -> Result<(), ()> {
-        make_check!("15");
-        let handler = apply!(
-            plus_one, plus_one, plus_one, plus_one, plus_one, plus_one, plus_one, plus_one,
-            plus_one, plus_one, plus_one, plus_one, plus_one, check
-        );
+        let handler = connect(
+            plus_one,
+            connect(plus_one, connect(plus_one, check).await?).await?,
+        )
+        .await?;
         handler.call(2).await?;
         Ok(())
     }

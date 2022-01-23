@@ -6,8 +6,8 @@
 //! # Examples
 //!
 //! ```
-//! use cubby_connect_server::handler::Handler;
-//! use cubby_connect_server::layer::Layer;
+//! use cubby_connect_server_core::handler::Handler;
+//! use cubby_connect_server_core::layer::Layer;
 //! use futures::future::{ok, LocalBoxFuture, Ready};
 //! use std::fmt::Display;
 //! use std::future::Future;
@@ -21,7 +21,7 @@
 //! pub struct Echo<T, H>
 //! where
 //!     H: Handler<T>,
-//! {
+//!
 //!     prev: H,
 //!     _marker: PhantomData<T>,
 //! }
@@ -157,23 +157,6 @@ where
     layer.into_layer().new_handler(handler.into_handler())
 }
 
-/// macro to use handler more simple
-///
-/// # Example
-///
-/// ```ignore
-/// apply!(some_layer1, some_layer2, ... some_handler);
-/// ```
-#[macro_export]
-macro_rules! apply {
-    ($x:expr, $y:expr) => {
-        $crate::layer::connect($x, $y).await?
-    };
-    ($x:expr, $($y:expr),+) => {
-        $crate::layer::connect($x, apply!($( $y ),+)).await?
-    };
-}
-
 #[cfg(test)]
 mod test {
     use std::fmt::Display;
@@ -295,18 +278,6 @@ mod test {
         )
         .await?;
         handler.call(4).await?;
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn handler_macro_test() -> Result<(), ()> {
-        let handler = apply!(
-            PlusOneFactory,
-            PlusOneFactory,
-            PlusOneFactory,
-            Check::new("6")
-        );
-        handler.call(3).await?;
         Ok(())
     }
 }
