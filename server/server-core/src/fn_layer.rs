@@ -35,7 +35,7 @@
 //! e.call("Hello, World!").await?;
 //!
 //! // or
-//!  
+//!
 //! let e = apply!(echo to print);
 //! e.call("Hello, World!").await?;
 //! # Ok(())
