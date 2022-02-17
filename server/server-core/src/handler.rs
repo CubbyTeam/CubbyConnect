@@ -3,7 +3,7 @@
 //! # Examples
 //!
 //! ```
-//! use cubby_connect_server::handler::Handler;
+//! use cubby_connect_server_core::handler::Handler;
 //! use futures::future::{ok, Ready};
 //! use std::fmt::Display;
 //!
