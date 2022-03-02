@@ -12,7 +12,7 @@ description = "Voxel-based MMORPG server using Rust"
 repository = "https://github.com/CubbyTeam/CubbyConnect"
 readme = "README.md"
 keywords = ["game", "mmorpg", "server"]
-license = "MIT"
+license = "GPL-3.0"
 edition = "2021"
 include = [
     "src/**.*",
