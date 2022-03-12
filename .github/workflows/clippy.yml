@@ -35,6 +35,12 @@ jobs:
           override: true
           components: clippy
 
+      - name: clippy client (default feature)
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --all-targets --manifest-path client/Cargo.toml -- -D warnings
+
       - name: clippy server (default feature)
         uses: actions-rs/cargo@v1
         with:
