@@ -1,2 +1,2 @@
 [workspace]
-members = ["server", "client"]
+members = ["server", "server/server-core", "server/server-macro", "client"]

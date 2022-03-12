@@ -1,0 +1,39 @@
+[package]
+name = "cubby-connect-server-core"
+version = "0.1.0"
+authors = [
+    "Chris Ohk <utilforever@gmail.com>",
+    "Seungoh Han <so.h4ns@gmail.com>",
+    "Jaeyong Sung <jaeyong0201@gmail.com>",
+    "Seungbin Oh <sboh1214@gmail.com>",
+    "Minchurl Shin <minchurl001@gmail.com>"
+]
+description = "Voxel-based MMORPG server using Rust (core part)"
+repository = "https://github.com/CubbyTeam/CubbyConnect"
+license = "MIT"
+edition = "2021"
+include = [
+    "src/**.*",
+    "build.rs",
+    "Cargo.toml",
+]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+cubby-connect-server-macro = { path = "../server-macro" }
+derive_builder = "0.10.2"
+futures = "0.3.17"
+prost = "0.8"
+serde = { version = "1.0", features = ["derive"], optional = true }
+tokio = { version = "1.10.1", features = ["rt-multi-thread", "macros"] }
+
+[features]
+default = []
+serial = ["serde"]
+
+[build-dependencies]
+prost-build = "0.8"
+
+[dev-dependencies]
+num-traits = "0.2.14"

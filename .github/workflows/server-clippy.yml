@@ -35,14 +35,26 @@ jobs:
           override: true
           components: clippy
 
-      - name: clippy (default feature)
+      - name: clippy server (default feature)
         uses: actions-rs/cargo@v1
         with:
           command: clippy
           args: --all-targets --manifest-path server/Cargo.toml -- -D warnings
 
-      - name: clippy (serial feature)
+      - name: clippy server-macro (default feature)
         uses: actions-rs/cargo@v1
         with:
           command: clippy
-          args: --all-targets --features serial --manifest-path server/Cargo.toml -- -D warnings
+          args: --all-targets --manifest-path server/server-macro/Cargo.toml -- -D warnings
+
+      - name: clippy server-core (default feature)
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --all-targets --manifest-path server/server-core/Cargo.toml -- -D warnings
+
+      - name: clippy server-core (serial feature)
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --all-targets --features serial --manifest-path server/server-core/Cargo.toml -- -D warnings

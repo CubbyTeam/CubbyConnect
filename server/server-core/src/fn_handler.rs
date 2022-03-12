@@ -3,8 +3,8 @@
 //! # Examples
 //!
 //! ```
-//! use cubby_connect_server::fn_handler::fn_handler;
-//! use cubby_connect_server::handler::Handler;
+//! use cubby_connect_server_core::fn_handler::fn_handler;
+//! use cubby_connect_server_core::handler::Handler;
 //! use std::fmt::Display;
 //!
 //! async fn hello<S: Display>(s: S) -> Result<(), ()> {
