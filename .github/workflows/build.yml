@@ -1,4 +1,4 @@
-name: Server Build
+name: Build
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  server_build:
+  build:
     runs-on: ${{ matrix.os }}
 
     strategy:

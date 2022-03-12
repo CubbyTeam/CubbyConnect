@@ -1,4 +1,4 @@
-name: Server Coverage
+name: Coverage
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  server_coverage:
+  coverage:
     runs-on: ubuntu-latest
 
     steps:

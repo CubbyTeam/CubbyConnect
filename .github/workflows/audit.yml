@@ -1,4 +1,4 @@
-name: Server Audit
+name: Audit
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  server_security_audit:
+  security_audit:
     runs-on: ubuntu-latest
 
     steps:
