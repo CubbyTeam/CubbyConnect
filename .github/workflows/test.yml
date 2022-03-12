@@ -1,4 +1,4 @@
-name: Server Test
+name: Test
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  server_test:
+  test:
     runs-on: ${{ matrix.os }}
 
     strategy:
@@ -36,6 +36,12 @@ jobs:
           profile: minimal
           toolchain: ${{ matrix.rust }}
           override: true
+
+      - name: test client (default feature)
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --manifest-path client/Cargo.toml
 
       - name: test server (default feature)
         uses: actions-rs/cargo@v1
